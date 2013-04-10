@@ -2,6 +2,7 @@
 
 var child_process = require('child_process'),
     format = require('util').format,
+    resolve = require('path').resolve,
     git = require('./lib/git'),
     ver = require('./lib/version'),
     tags = require('./lib/tags'),
@@ -11,16 +12,6 @@ var child_process = require('child_process'),
     progress = require('./lib/progress'),
     authors = require('./lib/authors');
 
-
-var dir = argv.dir;
-
-if (!dir) {
-  logError('Usage: release.js --dir <directory> [--continue | --abort ]');
-  return process.exit(1);
-}
-
-var gitClient = git.createClient(dir),
-    state = progress.state;
 
 var SCHEDULE = [
   verifyTreeClean,
@@ -49,6 +40,16 @@ var SCHEDULE = [
   uploadTarBall,
   done
 ];
+
+
+if (!argv.dir) {
+  logError('Usage: release.js --dir <directory> [--continue | --abort ]');
+  return process.exit(1);
+}
+
+var dir = resolve(argv.dir),
+    gitClient = git.createClient(dir),
+    state = progress.state;
 
 
 progress.read(gitClient, function(err) {
