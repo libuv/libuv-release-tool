@@ -299,7 +299,16 @@ function updateAuthorsAndMailmap() {
     if (!madeChanges)
       return next();
 
-    pauseNext("Changes were made to AUTHORS or .mailmap. Please review these.");
+    gitClient.top(function(err, dir) {
+      if (err)
+        return abort(err);
+
+      var cp = gitClient.spawn(['--no-pager', 'diff', 'AUTHORS', '.mailmap'], { cwd: dir, stdio: 'inherit' });
+
+      cp.on('close', function() {
+        pauseNext("Changes were made to AUTHORS or .mailmap. Please review these.");
+      });
+    });
   });
 }
 
