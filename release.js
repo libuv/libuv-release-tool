@@ -128,9 +128,12 @@ function pauseNext() {
     if (err)
       throw err;
 
-    logError.apply(null, args);
+    if (args.length) {
+      logError('');
+      logError.apply(null, args);
+    }
 
-    logError('\nUse `release.js --dir "%s" --continue` when done, or `--abort` to abort.',
+    logError('Use `release.js --dir "%s" --continue` when done, or `--abort` to abort.',
              dir);
   });
 }
@@ -142,9 +145,12 @@ function pauseRetry() {
     if (err)
       throw err;
 
-    logError.apply(null, args);
+    if (args.length) {
+      logError('');
+      logError.apply(null, args);
+    }
 
-    logError('\nUse `release.js --dir "%s" --continue` to retry, or `--abort` to abort.',
+    logError('Use `release.js --dir "%s" --continue` to retry, or `--abort` to abort.',
              dir);
   });
 }
