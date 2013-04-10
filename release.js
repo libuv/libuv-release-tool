@@ -1,4 +1,4 @@
-#!/bin/env node
+#!/usr/bin/env node
 
 var child_process = require('child_process'),
     format = require('util').format,
