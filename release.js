@@ -194,7 +194,7 @@ function verifyTreeClean() {
 
     if (!clean)
       return abort("The working tree is not clean. Please stash or commit " +
-                   " your work before making a release.");
+                   "your work before making a release.");
 
     next();
   });
