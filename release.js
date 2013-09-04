@@ -229,7 +229,7 @@ function setReleaseVersion() {
       if (err)
         return abort(err);
 
-      ver.parseFile(root + '/src/version.c', function(err, version) {
+      ver.parseVersionFile(root + '/src/version.c', function(err, version) {
         if (err)
           return abort(err);
 
@@ -277,11 +277,12 @@ function updateVersionFiles() {
     if (err)
       return abort(err);
 
-    var waiting = 2,
+    var waiting = 3,
         failed = false;
 
-    ver.updateFile(root + '/src/version.c', state.version, afterUpdate);
-    ver.updateFile(root + '/include/uv.h', state.version, afterUpdate);
+    ver.updateVersionFile(root + '/src/version.c', state.version, afterUpdate);
+    ver.updateVersionFile(root + '/include/uv.h', state.version, afterUpdate);
+    ver.updateConfigureFile(root + '/configure.ac', state.version, afterUpdate);
 
     function afterUpdate(err) {
       if (failed)
@@ -352,7 +353,7 @@ function tagRelease() {
 }
 
 function stageVersionFiles() {
-  gitClient.add(['src/version.c', 'include/uv.h'], nextOrAbort);
+  gitClient.add(['configure.ac', 'src/version.c', 'include/uv.h'], nextOrAbort);
 }
 
 
