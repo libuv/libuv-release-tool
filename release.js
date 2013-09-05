@@ -282,7 +282,21 @@ function updateVersionFiles() {
 
     ver.updateVersionFile(root + '/src/version.c', state.version, afterUpdate);
     ver.updateVersionFile(root + '/include/uv.h', state.version, afterUpdate);
-    ver.updateConfigureFile(root + '/configure.ac', state.version, afterUpdate);
+    ver.updateConfigureFile(root + '/configure.ac',
+                            state.version,
+                            afterConfigureUpdate);
+
+    function afterConfigureUpdate(err) {
+      // Because configure.ac is only included as of v0.11.6, don't complain if
+      // if the file is not found and we're releasing from an older branch.
+      if (err.code == 'ENOENT' &&
+          state.version.major == 0 && state.version.minor <= 10) {
+        state.configureAcFileMissing = true;
+        err = null;
+      }
+
+      return afterUpdate(err);
+    }
 
     function afterUpdate(err) {
       if (failed)
@@ -353,7 +367,11 @@ function tagRelease() {
 }
 
 function stageVersionFiles() {
-  gitClient.add(['configure.ac', 'src/version.c', 'include/uv.h'], nextOrAbort);
+  var files = ['src/version.c', 'include/uv.h'];
+  if (!state.configureAcFileMissing)
+    files.push('configure.ac');
+
+  gitClient.add(files, nextOrAbort);
 }
 
 
