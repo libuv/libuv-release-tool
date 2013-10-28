@@ -289,8 +289,10 @@ function updateVersionFiles() {
     function afterConfigureUpdate(err) {
       // Because configure.ac is only included as of v0.11.6, don't complain if
       // if the file is not found and we're releasing from an older branch.
-      if (err.code == 'ENOENT' &&
-          state.version.major == 0 && state.version.minor <= 10) {
+      if (err &&
+          err.code === 'ENOENT' &&
+          state.version.major === 0 &&
+          state.version.minor <= 10) {
         state.configureAcFileMissing = true;
         err = null;
       }
