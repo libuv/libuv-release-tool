@@ -2,6 +2,7 @@
 
 var child_process = require('child_process'),
     format = require('util').format,
+    fs = require('fs'),
     path = require('path'),
     resolve = require('path').resolve,
     git = require('./lib/git'),
@@ -230,7 +231,7 @@ function setReleaseVersion() {
       if (err)
         return abort(err);
 
-      var vfile = path.join(root, 'include', 'uv-version.h';
+      var vfile = path.join(root, 'include', 'uv-version.h');
 
       if (!fs.existsSync(vfile))
         vfile = path.join(root, 'src', 'version.c');
