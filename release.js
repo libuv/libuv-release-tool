@@ -2,6 +2,7 @@
 
 var child_process = require('child_process'),
     format = require('util').format,
+    path = require('path'),
     resolve = require('path').resolve,
     git = require('./lib/git'),
     ver = require('./lib/version'),
@@ -229,7 +230,12 @@ function setReleaseVersion() {
       if (err)
         return abort(err);
 
-      ver.parseVersionFile(root + '/src/version.c', function(err, version) {
+      var vfile = path.join(root, 'include', 'uv-version.h';
+
+      if (!fs.existsSync(vfile))
+        vfile = path.join(root, 'src', 'version.c');
+
+      ver.parseVersionFile(vfile, function(err, version) {
         if (err)
           return abort(err);
 
