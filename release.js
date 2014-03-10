@@ -203,6 +203,16 @@ function verifyTreeClean() {
 }
 
 
+function getVersionFile(root) {
+  var vfile = path.join(root, 'include', 'uv-version.h');
+
+  if (!fs.existsSync(vfile))
+    vfile = path.join(root, 'src', 'version.c');
+
+  return vfile;
+}
+
+
 function setReleaseVersion() {
   // If the user specified a particular version on the command line,
   // use it. Otherwise use the -pre version in libuv.c.
@@ -231,12 +241,7 @@ function setReleaseVersion() {
       if (err)
         return abort(err);
 
-      var vfile = path.join(root, 'include', 'uv-version.h');
-
-      if (!fs.existsSync(vfile))
-        vfile = path.join(root, 'src', 'version.c');
-
-      ver.parseVersionFile(vfile, function(err, version) {
+      ver.parseVersionFile(getVersionFile(root), function(err, version) {
         if (err)
           return abort(err);
 
@@ -287,7 +292,7 @@ function updateVersionFiles() {
     var waiting = 3,
         failed = false;
 
-    ver.updateVersionFile(root + '/src/version.c', state.version, afterUpdate);
+    ver.updateVersionFile(getVersionFile(root), state.version, afterUpdate);
     ver.updateVersionFile(root + '/include/uv.h', state.version, afterUpdate);
     ver.updateConfigureFile(root + '/configure.ac',
                             state.version,
@@ -376,7 +381,7 @@ function tagRelease() {
 }
 
 function stageVersionFiles() {
-  var files = ['src/version.c', 'include/uv.h'];
+  var files = ['src/version.c', 'include/uv.h', 'include/uv-version.h'];
   if (!state.configureAcFileMissing)
     files.push('configure.ac');
 
