@@ -30,11 +30,6 @@ var SCHEDULE = [
   commitRelease,
   tagRelease,
   addSHASumsToChangeLog,
-  bumpToPreVersion,
-  updateVersionFiles,
-  stageChangeLog,
-  stageVersionFiles,
-  commitVersionBump,
   reviewTagAndCommits,
   createWebsiteDirectory,
   pushTag,
@@ -44,8 +39,8 @@ var SCHEDULE = [
 ];
 
 
-if (!argv.dir) {
-  logError('Usage: release.js --dir <directory> [--continue | --abort ]');
+if (!argv.dir || !argv.version) {
+  logError('Usage: release.js --version <version> --dir <directory> [--continue | --abort ]');
   return process.exit(1);
 }
 
@@ -203,21 +198,7 @@ function verifyTreeClean() {
 }
 
 
-function getVersionFile(root) {
-  var vfile = path.join(root, 'include', 'uv-version.h');
-
-  if (!fs.existsSync(vfile))
-    vfile = path.join(root, 'src', 'version.c');
-
-  return vfile;
-}
-
-
 function setReleaseVersion() {
-  // If the user specified a particular version on the command line,
-  // use it. Otherwise use the -pre version in libuv.c.
-
-  if (state.argv.version) {
     var version;
 
     try {
@@ -226,42 +207,18 @@ function setReleaseVersion() {
       return abort(e);
     }
 
-    if (!version.is_release)
-      return abort("You probably don't want to release a pre-release " +
-                   "version");
-
     version.is_release = true;
     state.releaseVersion = version;
     state.version = clone(state.releaseVersion);
 
     next();
-
-  } else {
-    gitClient.top(function(err, root) {
-      if (err)
-        return abort(err);
-
-      ver.parseVersionFile(getVersionFile(root), function(err, version) {
-        if (err)
-          return abort(err);
-
-        if (version.is_release)
-          return abort('version.c currently contains a release version. ' +
-                       'You probably want to bump this to a non-release version');
-
-        version.is_release = true;
-        state.releaseVersion = version;
-        state.version = clone(state.releaseVersion);
-
-        next();
-      });
-    });
-  }
 }
 
 
 function checkTagSanity() {
-  tags.checkSanity(gitClient, state.version, nextOrAbort);
+  //tags.checkSanity(gitClient, state.version, nextOrAbort);
+  // TODO
+  next();
 }
 
 
@@ -289,28 +246,11 @@ function updateVersionFiles() {
     if (err)
       return abort(err);
 
-    var waiting = 3,
+    var waiting = 2,
         failed = false;
 
-    ver.updateVersionFile(getVersionFile(root), state.version, afterUpdate);
-    ver.updateVersionFile(root + '/include/uv.h', state.version, afterUpdate);
-    ver.updateConfigureFile(root + '/configure.ac',
-                            state.version,
-                            afterConfigureUpdate);
-
-    function afterConfigureUpdate(err) {
-      // Because configure.ac is only included as of v0.11.6, don't complain if
-      // if the file is not found and we're releasing from an older branch.
-      if (err &&
-          err.code === 'ENOENT' &&
-          state.version.major === 0 &&
-          state.version.minor <= 10) {
-        state.configureAcFileMissing = true;
-        err = null;
-      }
-
-      return afterUpdate(err);
-    }
+    ver.updateVersionFile(root + '/include/uv-version.h', state.version, afterUpdate);
+    ver.updateConfigureFile(root + '/configure.ac', state.version,  afterUpdate);
 
     function afterUpdate(err) {
       if (failed)
@@ -381,9 +321,7 @@ function tagRelease() {
 }
 
 function stageVersionFiles() {
-  var files = ['src/version.c', 'include/uv.h', 'include/uv-version.h'];
-  if (!state.configureAcFileMissing)
-    files.push('configure.ac');
+  var files = ['configure.ac', 'include/uv-version.h'];
 
   gitClient.add(files, nextOrAbort);
 }
@@ -396,21 +334,6 @@ function stageAuthorsAndMailmap() {
 
 function stageChangeLog() {
   gitClient.add(['ChangeLog'], nextOrAbort);
-}
-
-function bumpToPreVersion() {
-  state.version.is_release = false;
-  state.version.patch++;
-  next();
-}
-
-function commitVersionBump() {
-  var nextReleaseVersion = clone(state.version);
-  nextReleaseVersion.is_release = true;
-
-  var message = "Now working on " + ver.format(nextReleaseVersion);
-
-  gitClient.commit([], message, nextOrAbort);
 }
 
 
