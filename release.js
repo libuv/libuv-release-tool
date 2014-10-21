@@ -204,12 +204,7 @@ function verifyTreeClean() {
 
 
 function getVersionFile(root) {
-  var vfile = path.join(root, 'include', 'uv-version.h');
-
-  if (!fs.existsSync(vfile))
-    vfile = path.join(root, 'src', 'version.c');
-
-  return vfile;
+  return path.join(root, 'src', 'version.c');
 }
 
 
@@ -381,7 +376,7 @@ function tagRelease() {
 }
 
 function stageVersionFiles() {
-  var files = ['src/version.c', 'include/uv.h', 'include/uv-version.h'];
+  var files = ['src/version.c', 'include/uv.h'];
   if (!state.configureAcFileMissing)
     files.push('configure.ac');
 
