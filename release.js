@@ -386,18 +386,7 @@ function pushBranch() {
       return abort(err);
 
     var branch = ref.replace(/^refs\/heads\//, '');
-
-    if (branch !== 'master' &&
-        state.releaseTag.indexOf(branch + '.') !== 0) {
-
-      logError("Not pushing the current branch, because I couldn't decide which branch to push.\n" +
-               "You'll have to do it yourself.",
-               "You are currently on branch: " + (branch || 'DETACHED HEAD'));
-
-      pauseNext();
-    } else {
-      gitClient.exec(['push', remote, branch], nextOrRetry);
-    }
+    gitClient.exec(['push', remote, branch], nextOrRetry);
   });
 }
 
