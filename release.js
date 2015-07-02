@@ -305,6 +305,7 @@ function addReleaseNotesToChangeLog() {
 
 function addSHASumsToChangeLog() {
   changelog.addSHASums(gitClient, nextOrAbort);
+  gitClient.commit([], 'Add SHA to ChangeLog', nextOrAbort);
 }
 
 function commitRelease() {
