@@ -34,6 +34,9 @@ var SCHEDULE = [
   createWebsiteDirectory,
   pushTag,
   pushBranch,
+  createDistDirectory,
+  createTarBall,
+  signTarball,
   uploadTarBall,
   done
 ];
@@ -360,14 +363,47 @@ function createWebsiteDirectory() {
 }
 
 
-function uploadTarBall() {
+function createDistDirectory() {
+  fs.mkdir('dist',
+    function(err) {
+      if (error !== null)
+        return abort(err);
+      next();
+    }
+  );
+}
+
+
+function createTarBall() {
   var tag = ver.format(state.releaseVersion);
-  var filename = format('~/www/dist/%s/libuv-%s.tar.gz', tag, tag);
+  var filename = format('libuv-%s.tar.gz', tag);
   var prefix = format('libuv-%s/', tag);
-  var command = format('git archive %s --format=tar --prefix=%s | gzip -9 | ssh libuv@libuv.org "cat > %s"',
+  var command = format('git archive %s --format=tar --prefix=%s | gzip -9 > dist/%s',
                        tag,
                        prefix,
                        filename);
+  child_process.exec(command, { stdio: 'inherit', cwd: dir}, nextOrRetry);
+}
+
+
+function signTarball() {
+  var tag = ver.format(state.releaseVersion);
+  var filename = format('libuv-%s.tar.gz', tag);
+  var signFilename = format('libuv-%s.tar.gz.sign', tag);
+  var command = format('gpg -a --output dist/%s --detach-sign dist/%s',
+                       signFilename,
+                       filename);
+  child_process.exec(command, { stdio: 'inherit', cwd: dir}, nextOrRetry);
+}
+
+
+function uploadTarBall() {
+  var tag = ver.format(state.releaseVersion);
+  var baseFilename = format('libuv-%s.tar.gz', tag);
+  var directory = format('~/www/dist/%s/', tag);
+  var command = format('scp dist/%s* libuv@libuv.org:%s',
+                       baseFilename,
+                       directory);
   child_process.exec(command, { stdio: 'inherit', cwd: dir}, nextOrRetry);
 }
 
