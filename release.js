@@ -249,11 +249,12 @@ function updateVersionFiles() {
     if (err)
       return abort(err);
 
-    var waiting = 2,
+    var waiting = 3,
         failed = false;
 
     ver.updateVersionFile(root + '/include/uv-version.h', state.version, afterUpdate);
     ver.updateConfigureFile(root + '/configure.ac', state.version,  afterUpdate);
+    ver.updateAppVeyorFile(root + '/appveyor.yml', state.version,  afterUpdate);
 
     function afterUpdate(err) {
       if (failed)
