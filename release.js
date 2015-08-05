@@ -370,7 +370,7 @@ function createWebsiteDirectory() {
   var tag = ver.format(state.releaseVersion);
   var dir = '~/www/dist/' + tag;
 
-  child_process.execFile('ssh', ['libuv@libuv.org', 'mkdir -p ' + dir], { stdio: 'inherit' }, nextOrRetry);
+  child_process.execFile('ssh', ['libuv@dist.libuv.org', 'mkdir -p ' + dir], { stdio: 'inherit' }, nextOrRetry);
 }
 
 
@@ -412,7 +412,7 @@ function uploadTarBall() {
   var tag = ver.format(state.releaseVersion);
   var baseFilename = format('libuv-%s.tar.gz', tag);
   var directory = format('~/www/dist/%s/', tag);
-  var command = format('scp dist/%s* libuv@libuv.org:%s',
+  var command = format('scp dist/%s* libuv@dist.libuv.org:%s',
                        baseFilename,
                        directory);
   child_process.exec(command, { stdio: 'inherit', cwd: dir}, nextOrRetry);
