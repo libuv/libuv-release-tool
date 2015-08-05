@@ -308,8 +308,18 @@ function addReleaseNotesToChangeLog() {
 }
 
 function addSHASumsToChangeLog() {
-  changelog.addSHASums(gitClient, nextOrAbort);
-  gitClient.commit([], 'Add SHA to ChangeLog', nextOrAbort);
+  changelog.addSHASums(gitClient, function(err) {
+    if (err)
+      return abort(err);
+
+    gitClient.add(['ChangeLog'], function(err) {
+      if (err)
+        return abort(err);
+
+      gitClient.commit([], 'Add SHA to ChangeLog', nextOrAbort);
+    });
+
+  });
 }
 
 function commitRelease() {
