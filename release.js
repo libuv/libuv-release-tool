@@ -326,7 +326,7 @@ function tagRelease() {
 }
 
 function stageVersionFiles() {
-  var files = ['configure.ac', 'include/uv-version.h'];
+  var files = ['configure.ac', 'include/uv-version.h', 'appveyor.yml'];
 
   gitClient.add(files, nextOrAbort);
 }
