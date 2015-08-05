@@ -375,13 +375,12 @@ function createWebsiteDirectory() {
 
 
 function createDistDirectory() {
-  fs.mkdir('dist',
-    function(err) {
-      if (error !== null)
-        return abort(err);
-      next();
-    }
-  );
+  fs.mkdir(dir + '/dist', function(err) {
+    if (err && err.code !== 'EEXIST')
+        return pauseRetry(err);
+
+    next();
+  });
 }
 
 
