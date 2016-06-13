@@ -427,7 +427,7 @@ function createWebsiteDirectory() {
   var tag = ver.format(state.releaseVersion);
   var dir = '~/www/dist/' + tag;
 
-  child_process.execFile('ssh', ['libuv@libuv.org', 'mkdir -p ' + dir], { stdio: 'inherit' }, nextOrRetry);
+  child_process.execFile('ssh', ['libuv@dist.libuv.org', 'mkdir -p ' + dir], { stdio: 'inherit' }, nextOrRetry);
 }
 
 
@@ -435,7 +435,7 @@ function uploadTarBall() {
   var tag = ver.format(state.releaseVersion);
   var filename = format('~/www/dist/%s/libuv-%s.tar.gz', tag, tag);
   var prefix = format('libuv-%s/', tag);
-  var command = format('git archive %s --format=tar --prefix=%s | gzip -9 | ssh libuv@libuv.org "cat > %s"',
+  var command = format('git archive %s --format=tar --prefix=%s | gzip -9 | ssh libuv@dist.libuv.org "cat > %s"',
                        tag,
                        prefix,
                        filename);
