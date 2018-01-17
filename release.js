@@ -254,7 +254,6 @@ function updateVersionFiles() {
 
     ver.updateVersionFile(root + '/include/uv-version.h', state.version, afterUpdate);
     ver.updateConfigureFile(root + '/configure.ac', state.version,  afterUpdate);
-    ver.updateAppVeyorFile(root + '/appveyor.yml', state.version,  afterUpdate);
 
     function afterUpdate(err) {
       if (failed)
@@ -336,7 +335,7 @@ function tagRelease() {
 }
 
 function stageVersionFiles() {
-  var files = ['configure.ac', 'include/uv-version.h', 'appveyor.yml'];
+  var files = ['configure.ac', 'include/uv-version.h'];
 
   gitClient.add(files, nextOrAbort);
 }

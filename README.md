@@ -29,19 +29,6 @@ again. This updates the website, pushes the tag and branch, signs the tarball,
 etc. You can verify that this step worked by checking
 `http://dist.libuv.org/dist/vx.x.x`, which should include `.tar.gz` and
 `.tar.gz.sign` files.
-6. Next, we will generate the Windows executables. Log in to
-[AppVeyor](https://ci.appveyor.com/login). You will need an account for this.
-If you are creating an account, you will also need to add the libuv/libuv
-project to your account. Under the libuv project, click the New Build button.
-7. Once the AppVeyor builds complete, run the command
-`appveyor-download --api-token api_token --user username --project libuv`,
-where `appveyor-download` is the script of the same name found in this
-repository, `username` is your AppVeyor username, and `api_token` is your
-AppVeyor API token, which can be found in your AppVeyor account section. This
-will download the Windows builds to your machine.
-8. Upload the Windows builds to `dist.libuv.org` using the command
-`scp *.exe libuv@dist.libuv.org:www/dist/vx.x.x`. You will need to have SSH
-access setup in order to complete this step.
-9. Create a "Now working on" commit in libuv/libuv. An example can be seen
+6. Create a "Now working on" commit in libuv/libuv. An example can be seen
 [here](https://github.com/libuv/libuv/commit/67f4d1c5312224da3e4fd5efd8eb34b985722cde).
-10. Make a pull request to nodejs/node to update the version of libuv.
+7. Make a pull request to nodejs/node to update the version of libuv.
