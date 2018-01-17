@@ -249,7 +249,7 @@ function updateVersionFiles() {
     if (err)
       return abort(err);
 
-    var waiting = 3,
+    var waiting = 2,
         failed = false;
 
     ver.updateVersionFile(root + '/include/uv-version.h', state.version, afterUpdate);
