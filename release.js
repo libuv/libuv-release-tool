@@ -252,7 +252,7 @@ function updateVersionFiles() {
     var waiting = 2,
         failed = false;
 
-    ver.updateVersionFile(root + '/include/uv-version.h', state.version, afterUpdate);
+    ver.updateVersionFile(root + '/include/uv/version.h', state.version, afterUpdate);
     ver.updateConfigureFile(root + '/configure.ac', state.version,  afterUpdate);
 
     function afterUpdate(err) {
@@ -335,7 +335,7 @@ function tagRelease() {
 }
 
 function stageVersionFiles() {
-  var files = ['configure.ac', 'include/uv-version.h'];
+  var files = ['configure.ac', 'include/uv/version.h'];
 
   gitClient.add(files, nextOrAbort);
 }

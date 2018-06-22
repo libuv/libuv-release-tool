@@ -30,5 +30,5 @@ etc. You can verify that this step worked by checking
 `http://dist.libuv.org/dist/vx.x.x`, which should include `.tar.gz` and
 `.tar.gz.sign` files.
 6. Create a "Now working on" commit in libuv/libuv. An example can be seen
-[here](https://github.com/libuv/libuv/commit/67f4d1c5312224da3e4fd5efd8eb34b985722cde).
+[here](https://github.com/libuv/libuv/commit/07955ed3737cc59bc4d586b34222669ca87de755).
 7. Make a pull request to nodejs/node to update the version of libuv.
