@@ -3,6 +3,7 @@
 var child_process = require('child_process'),
     format = require('util').format,
     fs = require('fs'),
+    os = require('os'),
     path = require('path'),
     resolve = require('path').resolve,
     git = require('./lib/git'),
@@ -31,13 +32,14 @@ var SCHEDULE = [
   tagRelease,
   addSHASumsToChangeLog,
   reviewTagAndCommits,
+  createDistDirectory,
+  createCMakeTarBall,
+  createAutotoolsTarBall,
+  signTarballs,
   createWebsiteDirectory,
   pushTag,
   pushBranch,
-  createDistDirectory,
-  createTarBall,
-  signTarball,
-  uploadTarBall,
+  uploadTarBalls,
   done
 ];
 
@@ -374,16 +376,19 @@ function createWebsiteDirectory() {
 
 
 function createDistDirectory() {
-  fs.mkdir(dir + '/dist', function(err) {
+  var distdir = dir + '/dist';
+  fs.mkdir(distdir, function(err) {
     if (err && err.code !== 'EEXIST')
-        return pauseRetry(err);
+      return pauseRetry(err);
+    if (fs.readdirSync(distdir).length !== 0)
+      return pauseRetry("dist dir is not empty");
 
     next();
   });
 }
 
 
-function createTarBall() {
+function createCMakeTarBall() {
   var tag = ver.format(state.releaseVersion);
   var filename = format('libuv-%s.tar.gz', tag);
   var prefix = format('libuv-%s/', tag);
@@ -391,29 +396,83 @@ function createTarBall() {
                        tag,
                        prefix,
                        filename);
-  child_process.exec(command, { stdio: 'inherit', cwd: dir}, nextOrRetry);
+  child_process.exec(command, { stdio: 'inherit', cwd: dir }, nextOrRetry);
 }
 
 
-function signTarball() {
+function createAutotoolsTarBall() {
   var tag = ver.format(state.releaseVersion);
-  var filename = format('libuv-%s.tar.gz', tag);
-  var signFilename = format('libuv-%s.tar.gz.sign', tag);
-  var command = format('gpg -a --output dist/%s --detach-sign dist/%s',
-                       signFilename,
-                       filename);
-  child_process.exec(command, { stdio: 'inherit', cwd: dir}, nextOrRetry);
+  var distver = format('%d.%d.%d',
+                       state.releaseVersion.major,
+                       state.releaseVersion.minor,
+                       state.releaseVersion.patch);
+  child_process.execFile('./autogen.sh', [], { stdio: 'inherit', cwd: dir },
+                         function(err, stdout, stderr) {
+    if (err) {
+      console.log(stdout);
+      console.log(stderr);
+      return pauseRetry(err);
+    }
+    try {
+      var builddir = fs.mkdtempSync(path.join(os.tmpdir(), 'libuv-build-'));
+      console.log('    attempting build in %s', builddir);
+    } catch (err) {
+      return pauseRetry(err);
+    }
+    child_process.execFile(dir + '/configure', [],
+                           { stdio: 'inherit', cwd: builddir },
+                           function(err, stdout, stderr) {
+      if (err) {
+        console.log(stdout);
+        console.log(stderr);
+        return pauseRetry(err);
+      }
+      child_process.execFile('make', ['dist', '-j' + os.cpus().length], // TODO: use distcheck here
+                             { stdio: 'pipe', cwd: builddir },
+                             function(err, stdout, stderr) {
+        if (err) {
+          console.log(stdout);
+          console.log(stderr);
+          return pauseRetry(err);
+        }
+        var srcfilename = path.join(builddir, format('libuv-%s.tar.gz', distver));
+        var dstfilename = path.join(dir, 'dist', format('libuv-%s-dist.tar.gz', tag));
+        try {
+          fs.renameSync(srcfilename, dstfilename);
+          fs.rmdirSync(builddir, { recursive: true }); // in future nodejs, this will be called rmSync
+        } catch (err) {
+          return pauseRetry(err);
+        }
+        next();
+      });
+    });
+  });
 }
 
 
-function uploadTarBall() {
+function signTarballs() {
+  var tag = ver.format(state.releaseVersion);
+  var filename = format('dist/libuv-%s.tar.gz', tag);
+  var signFilename = filename + ".sign";
+  var args = ['-a', '--output', signFilename, '--detach-sign', filename];
+  child_process.execFile('gpg', args, { stdio: 'inherit', cwd: dir }, function(err) {
+    if (err)
+      return pauseRetry(err);
+    var filename = format('dist/libuv-%s-dist.tar.gz', tag);
+    var signFilename = filename + ".sign";
+    var args = ['-a', '--output', signFilename, '--detach-sign', filename];
+    child_process.execFile('gpg', args, { stdio: 'inherit', cwd: dir }, nextOrRetry);
+  });
+}
+
+
+function uploadTarBalls() {
   var tag = ver.format(state.releaseVersion);
   var baseFilename = format('libuv-%s.tar.gz', tag);
   var directory = format('~/www/dist/%s/', tag);
-  var command = format('scp dist/%s* libuv@dist.libuv.org:%s',
-                       baseFilename,
-                       directory);
-  child_process.exec(command, { stdio: 'inherit', cwd: dir}, nextOrRetry);
+  var args = [format('dist/%s*', baseFilename),
+              "libuv@dist.libuv.org:" + directory];
+  child_process.execFile('scp', args, { stdio: 'inherit', cwd: dir }, nextOrRetry);
 }
 
 

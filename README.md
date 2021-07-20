@@ -6,8 +6,8 @@ Command line utility for creating new releases of libuv.
 
 1. Make sure you have the most up-to-date version of this tool and the libuv
 branch that will be used to create the release.
-2. Currently, the release tool requires Node.js v0.10.x. You may want to use
-something like `nvm` to change Node versions.
+2. Currently, the release tool requires Node.js v12 or later. You may want to
+use something like `nvm` to change Node versions.
 3. Run `node ./release.js --version x.x.x --dir path --remote name`, where
 `x.x.x` is the version of libuv you are creating, `path` is the location of
 the libuv core repository on your machine, and `name` is the libuv core git
