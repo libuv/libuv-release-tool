@@ -33,4 +33,4 @@ etc. You can verify that this step worked by checking
 [here](https://github.com/libuv/libuv/commit/07955ed3737cc59bc4d586b34222669ca87de755).
 7. Create a new release on Github for the tag at
 <https://github.com/libuv/libuv/releases/new>.
-9. Make a pull request to nodejs/node to update the version of libuv.
+8. Make a pull request to nodejs/node to update the version of libuv.
