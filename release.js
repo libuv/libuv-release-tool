@@ -40,7 +40,10 @@ var SCHEDULE = [
   pushTag,
   pushBranch,
   uploadTarBalls,
-  done
+  done,
+  updateVersionFiles,
+  stageVersionFiles,
+  done,
 ];
 
 
@@ -498,6 +501,9 @@ function pushBranch() {
 
 function done() {
   logError('We\'re done!');
+  state.version.is_release = false;
+  state.version.patch++;
+  state.version.suffix = "dev";
   next();
 }
 
