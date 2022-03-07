@@ -376,7 +376,7 @@ function createWebsiteDirectory() {
 
 
 function createDistDirectory() {
-  var distdir = dir + '/dist';
+  var distdir = path.join(dir, 'dist');
   fs.mkdir(distdir, function(err) {
     if (err && err.code !== 'EEXIST')
       return pauseRetry(err);
@@ -467,12 +467,14 @@ function signTarballs() {
 
 
 function uploadTarBalls() {
+  var distdir = path.join(dir, 'dist');
   var tag = ver.format(state.releaseVersion);
-  var baseFilename = format('libuv-%s.tar.gz', tag);
+  var baseFilename = format('libuv-%s', tag);
   var directory = format('~/www/dist/%s/', tag);
-  var args = [format('dist/%s*', baseFilename),
-              "libuv@dist.libuv.org:" + directory];
-  child_process.execFile('scp', args, { stdio: 'inherit', cwd: dir }, nextOrRetry);
+  var args = fs.readdirSync(distdir)
+    .filter(function(e) { return e.startsWith(baseFilename); });
+  args.push("libuv@dist.libuv.org:" + directory);
+  child_process.execFile('scp', args, { stdio: 'inherit', cwd: distdir }, nextOrRetry);
 }
 
 
