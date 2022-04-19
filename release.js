@@ -23,9 +23,11 @@ var SCHEDULE = [
   getBaseVersion,
   updateAuthorsAndMailmap,
   updateVersionFiles,
+  checkAutogenVersions,
   prepareReleaseNotes,
   addReleaseNotesToChangeLog,
   stageVersionFiles,
+  stageAutogen,
   stageChangeLog,
   stageAuthorsAndMailmap,
   commitRelease,
@@ -274,6 +276,19 @@ function updateVersionFiles() {
 }
 
 
+function checkAutogenVersions() {
+  child_process.execFile('./autogen.sh', ['release'], { stdio: 'inherit', cwd: dir },
+                         function(err, stdout, stderr) {
+    if (err) {
+      console.log(stdout);
+      console.log(stderr);
+      return pauseRetry(err);
+    }
+    next();
+  });
+}
+
+
 function updateAuthorsAndMailmap() {
   authors.updateAuthors(gitClient, function(err, madeChanges) {
     if (err)
@@ -356,6 +371,11 @@ function stageChangeLog() {
 }
 
 
+function stageAutogen() {
+  gitClient.add(['m4/libuv-check-versions.m4'], nextOrAbort);
+}
+
+
 function reviewTagAndCommits() {
   gitClient.top(function(err, dir) {
     if (err)
@@ -409,7 +429,7 @@ function createAutotoolsTarBall() {
                        state.releaseVersion.major,
                        state.releaseVersion.minor,
                        state.releaseVersion.patch);
-  child_process.execFile('./autogen.sh', [], { stdio: 'inherit', cwd: dir },
+  child_process.execFile('./autogen.sh', ['release'], { stdio: 'inherit', cwd: dir },
                          function(err, stdout, stderr) {
     if (err) {
       console.log(stdout);
