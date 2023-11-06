@@ -33,15 +33,17 @@ var SCHEDULE = [
   commitRelease,
   tagRelease,
   addSHASumsToChangeLog,
-  reviewTagAndCommits,
+  cloneDistRepo,
   createDistDirectory,
   createCMakeTarBall,
   createAutotoolsTarBall,
   signTarballs,
-  createWebsiteDirectory,
+  generateIndex,
+  commitReleaseFiles,
+  reviewTagAndCommits,
+  pushTarBalls,
   pushTag,
   pushBranch,
-  uploadTarBalls,
   done,
   updateVersionFiles,
   stageVersionFiles,
@@ -55,7 +57,9 @@ if (!argv.dir || !argv.version) {
 }
 
 var dir = resolve(argv.dir),
+    disttopdir = path.join(dir, 'dist.libuv.org');
     gitClient = git.createClient(dir),
+    distClient = git.createClient(disttopdir),
     state = progress.state;
 
 
@@ -323,7 +327,7 @@ function prepareReleaseNotes() {
 
 
 function addReleaseNotesToChangeLog() {
-  changelog.addReleaseNotes(gitClient, state.releaseNotes, nextOrAbort);
+  changelog.addReleaseNotes(gitClient, state.releaseNotes, nextOrRetry);
 }
 
 function addSHASumsToChangeLog() {
@@ -335,7 +339,7 @@ function addSHASumsToChangeLog() {
       if (err)
         return abort(err);
 
-      gitClient.commit([], 'Add SHA to ChangeLog', nextOrAbort);
+      gitClient.commit([], 'Add SHA to ChangeLog', nextOrRetry);
     });
 
   });
@@ -344,7 +348,7 @@ function addSHASumsToChangeLog() {
 function commitRelease() {
   var message = relnotes.reflow(state.releaseNotes, 72);
 
-  gitClient.commit([], message, nextOrAbort);
+  gitClient.commit([], message, nextOrRetry);
 }
 
 function tagRelease() {
@@ -357,22 +361,22 @@ function tagRelease() {
 function stageVersionFiles() {
   var files = ['configure.ac', 'include/uv/version.h'];
 
-  gitClient.add(files, nextOrAbort);
+  gitClient.add(files, nextOrRetry);
 }
 
 
 function stageAuthorsAndMailmap() {
-  gitClient.add(['AUTHORS', '.mailmap'], nextOrAbort);
+  gitClient.add(['AUTHORS', '.mailmap'], nextOrRetry);
 }
 
 
 function stageChangeLog() {
-  gitClient.add(['ChangeLog'], nextOrAbort);
+  gitClient.add(['ChangeLog'], nextOrRetry);
 }
 
 
 function stageAutogen() {
-  gitClient.add(['m4/libuv-check-versions.m4'], nextOrAbort);
+  gitClient.add(['m4/libuv-check-versions.m4'], nextOrRetry);
 }
 
 
@@ -390,35 +394,56 @@ function reviewTagAndCommits() {
 }
 
 
-function createWebsiteDirectory() {
+function getDistDir(rel) {
   var tag = ver.format(state.releaseVersion);
-  var dir = '~/www/dist/' + tag;
+  var distdir = path.join('dist.libuv.org', 'dist', tag);
+  if (!rel)
+    distdir = path.join(dir, distdir);
+  return distdir;
+}
 
-  child_process.execFile('ssh', ['libuv@dist.libuv.org', 'mkdir -p ' + dir], { stdio: 'inherit' }, nextOrRetry);
+
+function cloneDistRepo() {
+  if (fs.existsSync(disttopdir)) {
+    distClient.exec(['pull', '--no-ff'], nextOrRetry);
+  } else {
+    child_process.execFile('git', ['clone', 'https://github.com/libuv/dist.libuv.org.git'], { stdio: 'inherit', cwd: dir }, nextOrRetry);
+  }
 }
 
 
 function createDistDirectory() {
-  var distdir = path.join(dir, 'dist');
-  fs.mkdir(distdir, function(err) {
-    if (err && err.code !== 'EEXIST')
-      return pauseRetry(err);
-    if (fs.readdirSync(distdir).length !== 0)
-      return pauseRetry("dist dir is not empty");
+  var disttopdir = path.join(dir, 'dist.libuv.org');
+  distClient.isClean(function(err, clean) {
+    if (err)
+      return abort(err);
 
-    next();
+    if (!clean)
+      return abort("The dist.libuv.org tree is not clean. Please stash or commit " +
+                   "your work before making a release.");
+
+    var distdir = getDistDir(false);
+    fs.mkdir(distdir, function(err) {
+      if (err && err.code !== 'EEXIST')
+        return pauseRetry(err);
+      if (fs.readdirSync(distdir).length !== 0)
+        return pauseRetry("dist dir is not empty");
+
+      next();
+    });
   });
 }
 
 
 function createCMakeTarBall() {
+  var distdir = getDistDir(true);
   var tag = ver.format(state.releaseVersion);
   var filename = format('libuv-%s.tar.gz', tag);
   var prefix = format('libuv-%s/', tag);
-  var command = format('git archive %s --format=tar --prefix=%s | gzip -9 > dist/%s',
+  var command = format('git archive %s --format=tar --prefix=%s | gzip -9 > %s',
                        tag,
                        prefix,
-                       filename);
+                       path.join(distdir, filename));
   child_process.exec(command, { stdio: 'inherit', cwd: dir }, nextOrRetry);
 }
 
@@ -459,7 +484,7 @@ function createAutotoolsTarBall() {
           return pauseRetry(err);
         }
         var srcfilename = path.join(builddir, format('libuv-%s.tar.gz', distver));
-        var dstfilename = path.join(dir, 'dist', format('libuv-%s-dist.tar.gz', tag));
+        var dstfilename = path.join(getDistDir(false), format('libuv-%s-dist.tar.gz', tag));
         try {
           fs.renameSync(srcfilename, dstfilename);
           fs.rmdirSync(builddir, { recursive: true }); // in future nodejs, this will be called rmSync
@@ -475,29 +500,38 @@ function createAutotoolsTarBall() {
 
 function signTarballs() {
   var tag = ver.format(state.releaseVersion);
-  var filename = format('dist/libuv-%s.tar.gz', tag);
+  var filename = format('libuv-%s.tar.gz', tag);
+  var distdir = getDistDir(false);
   var signFilename = filename + ".sign";
   var args = ['-a', '--output', signFilename, '--detach-sign', filename];
-  child_process.execFile('gpg', args, { stdio: 'inherit', cwd: dir }, function(err) {
+  child_process.execFile('gpg', args, { stdio: 'inherit', cwd: distdir }, function(err) {
     if (err)
       return pauseRetry(err);
-    var filename = format('dist/libuv-%s-dist.tar.gz', tag);
+    var filename = format('libuv-%s-dist.tar.gz', tag);
     var signFilename = filename + ".sign";
     var args = ['-a', '--output', signFilename, '--detach-sign', filename];
-    child_process.execFile('gpg', args, { stdio: 'inherit', cwd: dir }, nextOrRetry);
+    child_process.execFile('gpg', args, { stdio: 'inherit', cwd: distdir }, nextOrRetry);
   });
 }
 
 
-function uploadTarBalls() {
-  var distdir = path.join(dir, 'dist');
+function commitReleaseFiles() {
   var tag = ver.format(state.releaseVersion);
-  var baseFilename = format('libuv-%s', tag);
-  var directory = format('~/www/dist/%s/', tag);
-  var args = fs.readdirSync(distdir)
-    .filter(function(e) { return e.startsWith(baseFilename); });
-  args.push("libuv@dist.libuv.org:" + directory);
-  child_process.execFile('scp', args, { stdio: 'inherit', cwd: distdir }, nextOrRetry);
+  distClient.add(['index.html', 'metadata.json', 'dist'], function(err) {
+    if (err)
+      return pauseRetry(err);
+
+    distClient.commit([], 'Release Version ' + tag.slice(1), nextOrRetry);
+  });
+}
+
+function generateIndex() {
+  child_process.execFile('node', ['generate-index.js'], { stdio: 'inherit', cwd: disttopdir }, nextOrRetry);
+}
+
+
+function pushTarBalls() {
+  distClient.exec(['push'], nextOrRetry);
 }
 
 
@@ -518,6 +552,7 @@ function pushBranch() {
     gitClient.exec(['push', remote, branch], nextOrRetry);
   });
 }
+
 
 function done() {
   logError('We\'re done!');
